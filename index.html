@@ -1,82 +1,462 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="uk">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MintTether</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>MintTether Terminal</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body {
+    :root {
+      --bg: #070b12;
+      --card: #101826;
+      --card-2: #162235;
+      --line: rgba(255, 255, 255, 0.08);
+      --text: #f3f7ff;
+      --muted: #8fa1bf;
+      --green: #19d38c;
+      --green-dark: #0ea86d;
+      --blue: #3b82f6;
+      --amber: #f59e0b;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
       margin: 0;
-      padding: 20px;
-      background: #0b0f14;
-      color: #ffffff;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: radial-gradient(circle at top, #122038 0%, var(--bg) 55%);
+      color: var(--text);
       min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      padding: 16px 16px 92px;
     }
+
     .app {
-      width: 100%;
-      max-width: 400px;
-      background: #131a22;
-      border: 1px solid #26a17b;
-      border-radius: 22px;
-      padding: 24px;
-      text-align: center;
+      max-width: 560px;
+      margin: 0 auto;
     }
-    .title { color: #26a17b; font-weight: 700; font-size: 16px; margin-bottom: 10px; }
-    .balance { font-size: 36px; font-weight: 800; margin: 8px 0; }
-    .info { color: #9aa5b1; font-size: 14px; margin-bottom: 24px; }
-    .mine-btn {
-      width: 180px;
-      height: 180px;
-      border-radius: 50%;
-      border: 4px solid #26a17b;
-      background: radial-gradient(circle, #2fd49f, #176b50);
-      color: #fff;
-      font-size: 20px;
-      font-weight: 800;
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .brand-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .uid-badge {
+      background: var(--card-2);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 12px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(10, 16, 28, 0.96);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--line);
+      padding: 8px 10px 12px;
+      z-index: 50;
+    }
+
+    .nav-grid {
+      max-width: 560px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+    }
+
+    .nav-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 14px;
+      color: var(--muted);
+      padding: 8px 4px;
+      font-size: 11px;
+      font-weight: 600;
       cursor: pointer;
-      box-shadow: 0 0 30px rgba(38, 161, 123, 0.5);
-      margin: 10px auto 24px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      gap: 4px;
     }
-    .mine-btn:active { transform: scale(0.95); }
-    .boost-btn {
-      width: 100%;
-      padding: 14px;
-      border: none;
-      border-radius: 14px;
-      background: #26a17b;
-      color: #fff;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
+
+    .nav-btn.active {
+      background: var(--card-2);
+      border-color: rgba(25, 211, 140, 0.35);
+      color: var(--text);
     }
-    .msg { margin-top: 14px; font-size: 14px; color: #38d9a9; min-height: 20px; }
+
+    .nav-ico {
+      font-size: 17px;
+      line-height: 1;
+    }
   </style>
 </head>
 <body>
   <div class="app">
-    <div class="title">MINTTETHER MINING</div>
-    <div class="balance" id="balance">0.0000 USDT</div>
-    <div class="info">
-      Скорость: <span id="rate">0.0050</span> USDT/мин<br />
-      Намайнено: <span id="mined">0.0000</span> USDT
+    <div class="topbar">
+      <div>
+        <div class="brand-title">MintTether Terminal</div>
+        <div class="brand-sub">USDT Mining & Finance Suite</div>
+      </div>
+      <div class="uid-badge" id="uidBadge">UID: ---</div>
     </div>
 
-    <button class="mine-btn" onclick="claim()">
-      <span style="font-size: 36px;">⛏</span>
-      <span>СОБРАТЬ</span>
-    </button>
+    <!-- 1. МАЙНЕР -->
+    <div class="tab-panel active" id="tab-miner">
+      <div class="card">
+        <div class="brand-sub">Загальний баланс</div>
+        <div style="font-size: 32px; font-weight: 800; margin: 6px 0;" id="balanceValue">0.00000 USDT</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px;">
+          <div style="background: var(--card-2); border: 1px solid var(--line); border-radius: 14px; padding: 12px;">
+            <div class="brand-sub">Швидкість / 20 хв</div>
+            <div style="font-size: 15px; font-weight: 700; color: var(--green); margin-top: 4px;" id="rate20mValue">+0.0002 USDT</div>
+            <div class="brand-sub" id="rateValue" style="margin-top: 2px;">0.00001 USDT / хв</div>
+          </div>
+          <div style="background: var(--card-2); border: 1px solid var(--line); border-radius: 14px; padding: 12px;">
+            <div class="brand-sub">Намайнено</div>
+            <div style="font-size: 16px; font-weight: 700; color: var(--amber); margin-top: 4px;" id="minedValue">0.00000 USDT</div>
+          </div>
+        </div>
+        <button id="claimBtn" style="width: 100%; margin-top: 14px; padding: 14px; border: none; border-radius: 14px; background: linear-gradient(135deg, var(--green), var(--green-dark)); color: #05110b; font-size: 15px; font-weight: 800; cursor: pointer;">
+          ⛏️ Зібрати намайнене
+        </button>
+      </div>
 
-    <button class="boost-btn" onclick="boost()">⚡ Буст +0.005/мин (0.5 USDT)</button>
-    <div class="msg" id="msg"></div>
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px;">
+          <span class="brand-sub">Прогрес до виводу ($35.00)</span>
+          <strong id="withdrawProgressText">0.0%</strong>
+        </div>
+        <div style="height: 10px; background: var(--card-2); border-radius: 999px; overflow: hidden; border: 1px solid var(--line);">
+          <div id="withdrawProgressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--blue), var(--green)); transition: width 0.25s ease;"></div>
+        </div>
+        <div class="brand-sub" style="margin-top: 10px;">
+          Куплено майнерів: <strong id="ownedMinersCount" style="color: var(--text);">0</strong> • Базовий режим дає <strong>0.0002 USDT / 20 хв</strong> без майнерів
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. МАГАЗИН -->
+    <div class="tab-panel" id="tab-shop">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h2 style="font-size: 18px;">Магазин майнерів</h2>
+            <div class="brand-sub">Поповніть баланс у «Поповнити» та оберіть потужність ($10 – $2000)</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="brand-sub">Баланс</div>
+            <strong id="shopBalanceValue" style="color: var(--green); font-size: 14px;">0.0000 USDT</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+          <div>
+            <div style="font-size: 15px; font-weight: 700;">🔹 Nano Rig</div>
+            <div class="brand-sub" style="margin-top: 4px;">Дохід: <strong style="color: var(--green);">+0.04 USDT / 20 хв</strong> <span style="color: var(--muted);">(0.0020/хв)</span></div>
+            <div class="brand-sub">Куплено: <strong id="count-nano" style="color: var(--text);">0</strong></div>
+          </div>
+          <button class="buy-miner-btn" data-miner="nano" data-price="10" style="padding: 10px 14px; border: none; border-radius: 12px; background: var(--blue); color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; white-space: nowrap;">
+            10 USDT
+          </button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+          <div>
+            <div style="font-size: 15px; font-weight: 700;">🔸 Core Node</div>
+            <div class="brand-sub" style="margin-top: 4px;">Дохід: <strong style="color: var(--green);">+0.22 USDT / 20 хв</strong> <span style="color: var(--muted);">(0.0110/хв)</span></div>
+            <div class="brand-sub">Куплено: <strong id="count-core" style="color: var(--text);">0</strong></div>
+          </div>
+          <button class="buy-miner-btn" data-miner="core" data-price="50" style="padding: 10px 14px; border: none; border-radius: 12px; background: var(--blue); color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; white-space: nowrap;">
+            50 USDT
+          </button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+          <div>
+            <div style="font-size: 15px; font-weight: 700;">⚡ Pulse Rack</div>
+            <div class="brand-sub" style="margin-top: 4px;">Дохід: <strong style="color: var(--green);">+0.72 USDT / 20 хв</strong> <span style="color: var(--muted);">(0.0360/хв)</span></div>
+            <div class="brand-sub">Куплено: <strong id="count-pulse" style="color: var(--text);">0</strong></div>
+          </div>
+          <button class="buy-miner-btn" data-miner="pulse" data-price="150" style="padding: 10px 14px; border: none; border-radius: 12px; background: var(--blue); color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; white-space: nowrap;">
+            150 USDT
+          </button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+          <div>
+            <div style="font-size: 15px; font-weight: 700;">💎 Cluster Pro</div>
+            <div class="brand-sub" style="margin-top: 4px;">Дохід: <strong style="color: var(--green);">+2.70 USDT / 20 хв</strong> <span style="color: var(--muted);">(0.1350/хв)</span></div>
+            <div class="brand-sub">Куплено: <strong id="count-cluster" style="color: var(--text);">0</strong></div>
+          </div>
+          <button class="buy-miner-btn" data-miner="cluster" data-price="500" style="padding: 10px 14px; border: none; border-radius: 12px; background: var(--blue); color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; white-space: nowrap;">
+            500 USDT
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+          <div>
+            <div style="font-size: 15px; font-weight: 700;">👑 Titan Farm</div>
+            <div class="brand-sub" style="margin-top: 4px;">Дохід: <strong style="color: var(--green);">+12.00 USDT / 20 хв</strong> <span style="color: var(--muted);">(0.6000/хв)</span></div>
+            <div class="brand-sub">Куплено: <strong id="count-titan" style="color: var(--text);">0</strong></div>
+          </div>
+          <button class="buy-miner-btn" data-miner="titan" data-price="2000" style="padding: 10px 14px; border: none; border-radius: 12px; background: linear-gradient(135deg, var(--amber), #d97706); color: #140d02; font-weight: 800; font-size: 13px; cursor: pointer; white-space: nowrap;">
+            2000 USDT
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. ПОПОВНИТИ -->
+    <div class="tab-panel" id="tab-deposit">
+      <div class="card">
+        <h2 style="font-size: 18px;">Поповнення балансу USDT</h2>
+        <div class="brand-sub" style="margin-top: 4px;">
+          Оберіть мережу, перекажіть USDT на адресу гаманця та підтвердьте поповнення для купівлі майнерів.
+        </div>
+
+        <div style="margin-top: 14px;">
+          <label for="depositNetworkSelect" class="brand-sub" style="display: block; margin-bottom: 6px;">
+            Мережа переказу
+          </label>
+          <select id="depositNetworkSelect" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--card-2); color: var(--text); font-size: 14px; font-weight: 700; outline: none;">
+            <option value="BEP20" data-address="0x19bc4bcabdac77fae14c2dc93563cc62c9e18d19">USDT — BEP20</option>
+            <option value="TRC20" data-address="TXY7vyHeZJj7KU9zFzYhvNLB9qRfyvDqCP">USDT — TRC20</option>
+            <option value="TON" data-address="UQAMr7OmPPKKol1vrhbFMenfRLEjmDy6vDdS5jZHfeaFeKi1">USDT — TON</option>
+          </select>
+        </div>
+
+        <div style="background: var(--card-2); border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-top: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span class="brand-sub">Активна мережа</span>
+            <strong id="depositNetworkBadge" style="color: var(--green); font-size: 13px;">BEP20</strong>
+          </div>
+          <div class="brand-sub">Адреса гаманця:</div>
+          <div id="depositWalletAddress" style="font-size: 12px; font-weight: 700; word-break: break-all; margin-top: 6px; color: var(--text);">
+            0x19bc4bcabdac77fae14c2dc93563cc62c9e18d19
+          </div>
+          <button id="copyWalletBtn" type="button" style="margin-top: 10px; width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--text); font-weight: 700; font-size: 13px; cursor: pointer;">
+            📋 Скопіювати адресу
+          </button>
+        </div>
+
+        <div style="margin-top: 14px;">
+          <label for="depositAmountInput" class="brand-sub" style="display: block; margin-bottom: 6px;">
+            Сума поповнення (USDT)
+          </label>
+          <input id="depositAmountInput" type="number" min="1" step="0.1" placeholder="Наприклад, 10.0" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--card-2); color: var(--text); font-size: 15px; outline: none;" />
+        </div>
+
+        <button id="checkDepositBtn" type="button" style="width: 100%; margin-top: 12px; padding: 14px; border: none; border-radius: 14px; background: linear-gradient(135deg, var(--blue), #2563eb); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer;">
+          🔄 Перевірити / Підтвердити поповнення
+        </button>
+
+        <div id="depositStatusBox" class="brand-sub" style="margin-top: 10px; min-height: 18px;"></div>
+      </div>
+    </div>
+
+    <!-- 4. ЗАВДАННЯ -->
+    <div class="tab-panel" id="tab-tasks">
+      <div class="card">
+        <h2 style="font-size: 18px;">Завдання</h2>
+        <div class="brand-sub" style="margin-top: 4px;">
+          Виконуйте прості активності та отримуйте невеликі бонуси в USDT на баланс.
+        </div>
+
+        <div style="background: var(--card-2); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-top: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+            <div>
+              <div style="font-size: 15px; font-weight: 700;">📢 Підписка на канал проєкту</div>
+              <div class="brand-sub" style="margin-top: 4px;">
+                Перейдіть у канал, підпишіться та заберіть нагороду: <strong style="color: var(--green);">+0.02 USDT</strong>
+              </div>
+            </div>
+            <span style="background: rgba(25, 211, 140, 0.14); color: var(--green); border: 1px solid rgba(25, 211, 140, 0.35); padding: 4px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; white-space: nowrap;">
+              +0.02 USDT
+            </span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px;">
+            <a id="channelLinkBtn" href="https://t.me/telegram" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; justify-content: center; text-decoration: none; padding: 11px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); color: var(--text); font-size: 13px; font-weight: 700;">
+              🔗 Відкрити канал
+            </a>
+            <button id="claimTaskBtn" type="button" style="padding: 11px; border: none; border-radius: 12px; background: linear-gradient(135deg, var(--green), var(--green-dark)); color: #05110b; font-size: 13px; font-weight: 800; cursor: pointer;">
+              ✅ Забрати бонус
+            </button>
+          </div>
+
+          <div id="taskStatusBox" class="brand-sub" style="margin-top: 10px; min-height: 16px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. БОНУСИ -->
+    <div class="tab-panel" id="tab-bonus">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+          <div>
+            <h2 style="font-size: 18px;">Щоденний бонус</h2>
+            <div class="brand-sub" style="margin-top: 4px;">
+              Отримуйте <strong style="color: var(--green);">+0.05 USDT</strong> кожні 24 години.
+            </div>
+          </div>
+          <span style="background: rgba(25, 211, 140, 0.14); color: var(--green); border: 1px solid rgba(25, 211, 140, 0.35); padding: 5px 9px; border-radius: 10px; font-size: 12px; font-weight: 700; white-space: nowrap;">
+            +0.05 USDT / 24h
+          </span>
+        </div>
+
+        <button id="dailyBonusBtn" type="button" style="width: 100%; margin-top: 12px; padding: 13px; border: none; border-radius: 14px; background: linear-gradient(135deg, var(--green), var(--green-dark)); color: #05110b; font-size: 14px; font-weight: 800; cursor: pointer;">
+          🎁 Забрати щоденний бонус (0.05 USDT)
+        </button>
+        <div id="dailyBonusStatus" class="brand-sub" style="margin-top: 8px; min-height: 16px;"></div>
+      </div>
+
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+          <div>
+            <h2 style="font-size: 18px;">Реферальна програма</h2>
+            <div class="brand-sub" style="margin-top: 4px;">
+              Запрошуйте друзів та отримуйте <strong style="color: var(--green);">+0.1 USDT</strong> за кожного реферала.
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <div class="brand-sub">Рефералів</div>
+            <strong id="referralsCount" style="color: var(--text); font-size: 15px;">0</strong>
+          </div>
+        </div>
+
+        <div style="background: var(--card-2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-top: 12px; font-size: 12px; word-break: break-all; color: var(--muted);" id="referralLinkBox">
+          Завантаження реферального посилання...
+        </div>
+
+        <button id="copyReferralBtn" type="button" style="width: 100%; margin-top: 10px; padding: 11px; border: 1px solid var(--line); border-radius: 12px; background: var(--card-2); color: var(--text); font-size: 13px; font-weight: 700; cursor: pointer;">
+          🔗 Скопіювати реферальне посилання
+        </button>
+      </div>
+    </div>
+
+    <!-- 6. ВИВІД -->
+    <div class="tab-panel" id="tab-withdraw">
+      <div class="card">
+        <h2 style="font-size: 18px;">Вивід коштів</h2>
+        <div class="brand-sub" style="margin-top: 4px;">
+          Мінімальна сума виводу: <strong style="color: var(--amber);">$35.00 USDT</strong>. Заявка надходить адміністратору в бота.
+        </div>
+
+        <div style="margin-top: 12px;">
+          <label for="withdrawNetworkSelect" class="brand-sub" style="display: block; margin-bottom: 6px;">
+            Мережа виводу
+          </label>
+          <select id="withdrawNetworkSelect" style="width: 100%; padding: 11px; border-radius: 12px; border: 1px solid var(--line); background: var(--card-2); color: var(--text); font-size: 14px; font-weight: 700; outline: none;">
+            <option value="BEP20">USDT — BEP20</option>
+            <option value="TRC20">USDT — TRC20</option>
+            <option value="TON">USDT — TON</option>
+          </select>
+        </div>
+
+        <div style="margin-top: 12px;">
+          <label for="withdrawAddressInput" class="brand-sub" style="display: block; margin-bottom: 6px;">
+            Адреса вашого гаманця
+          </label>
+          <input id="withdrawAddressInput" type="text" placeholder="Введіть адресу USDT гаманця" style="width: 100%; padding: 11px; border-radius: 12px; border: 1px solid var(--line); background: var(--card-2); color: var(--text); font-size: 14px; outline: none;" />
+        </div>
+
+        <div style="margin-top: 12px;">
+          <label for="withdrawAmountInput" class="brand-sub" style="display: block; margin-bottom: 6px;">
+            Сума виводу (мін. 35.00 USDT)
+          </label>
+          <input id="withdrawAmountInput" type="number" min="35" step="0.01" placeholder="35.00" style="width: 100%; padding: 11px; border-radius: 12px; border: 1px solid var(--line); background: var(--card-2); color: var(--text); font-size: 14px; outline: none;" />
+        </div>
+
+        <button id="submitWithdrawBtn" type="button" style="width: 100%; margin-top: 14px; padding: 14px; border: none; border-radius: 14px; background: linear-gradient(135deg, var(--amber), #d97706); color: #140d02; font-size: 15px; font-weight: 800; cursor: pointer;">
+          💸 Подати заявку на вивід (від $35)
+        </button>
+
+        <div id="withdrawStatusBox" class="brand-sub" style="margin-top: 10px; min-height: 18px;"></div>
+      </div>
+    </div>
+
+    <nav class="bottom-nav">
+      <div class="nav-grid">
+        <button class="nav-btn active" data-tab="tab-miner">
+          <span class="nav-ico">⛏️</span>
+          <span>Майнер</span>
+        </button>
+        <button class="nav-btn" data-tab="tab-shop">
+          <span class="nav-ico">🛒</span>
+          <span>Магазин</span>
+        </button>
+        <button class="nav-btn" data-tab="tab-deposit">
+          <span class="nav-ico">💳</span>
+          <span>Поповнити</span>
+        </button>
+        <button class="nav-btn" data-tab="tab-tasks">
+          <span class="nav-ico">📋</span>
+          <span>Завдання</span>
+        </button>
+        <button class="nav-btn" data-tab="tab-bonus">
+          <span class="nav-ico">🎁</span>
+          <span>Бонуси</span>
+        </button>
+        <button class="nav-btn" data-tab="tab-withdraw">
+          <span class="nav-ico">💸</span>
+          <span>Вивід</span>
+        </button>
+      </div>
+    </nav>
   </div>
 
   <script>
@@ -86,75 +466,360 @@
       tg.expand();
     }
 
-    const params = new URLSearchParams(window.location.search);
-    const uid = params.get("uid") || (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) || "guest";
-    const storageKey = `mint_data_${uid}`;
+    const BOT_USERNAME = "MintTetherBot"; // Замініть на username вашого бота без @
+    const CYCLE_MINUTES = 20; // Інтервал нарахування: 20 хвилин
+    const BASE_RATE_PER_20M = 0.0002; // Базовий дохід без майнерів: 0.0002 USDT / 20 хв
+    const BASE_RATE_PER_MIN = BASE_RATE_PER_20M / CYCLE_MINUTES; // 0.00001 USDT / хв
 
-    const saved = JSON.parse(localStorage.getItem(storageKey) || "null") || {};
-    const urlBalance = parseFloat(params.get("balance"));
-    const urlRate = parseFloat(params.get("rate"));
-
-    let data = {
-      balance: !Number.isNaN(urlBalance) ? Number(urlBalance.toFixed(4)) : (Number(saved.balance) || 0),
-      rate: !Number.isNaN(urlRate) ? Number(urlRate.toFixed(4)) : (Number(saved.rate) || 0.005),
-      last: Number(saved.last) || Date.now()
+    const MINER_RATES_PER_20M = {
+      nano: 0.04,    // $10  -> 0.04 USDT / 20 хв (0.0020 / хв)
+      core: 0.22,    // $50  -> 0.22 USDT / 20 хв (0.0110 / хв)
+      pulse: 0.72,   // $150 -> 0.72 USDT / 20 хв (0.0360 / хв)
+      cluster: 2.70, // $500 -> 2.70 USDT / 20 хв (0.1350 / хв)
+      titan: 12.00   // $2000-> 12.00 USDT / 20 хв (0.6000 / хв)
     };
 
-    function saveLocal() {
-      localStorage.setItem(storageKey, JSON.stringify(data));
-    }
+    const TASK_REWARD = 0.02;
+    const DAILY_BONUS_REWARD = 0.05;
+    const REFERRAL_REWARD = 0.10;
+    const MIN_WITHDRAW = 35.00;
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const STORAGE_KEY = "minttether_state_v3_20m";
 
-    function sendToBot() {
-      saveLocal();
-      if (tg && typeof tg.sendData === "function") {
-        tg.sendData(JSON.stringify({
-          uid: String(uid),
-          balance: Number(data.balance.toFixed(4)),
-          rate: Number(data.rate.toFixed(4))
-        }));
+    const defaultState = {
+      balance: 0,
+      minedPending: 0,
+      lastTick: Date.now(),
+      miners: { nano: 0, core: 0, pulse: 0, cluster: 0, titan: 0 },
+      taskClaimed: false,
+      lastDailyBonus: 0,
+      referrals: 0,
+      deposits: []
+    };
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return { ...defaultState, miners: { ...defaultState.miners }, deposits: [] };
+        const parsed = JSON.parse(raw);
+        return {
+          ...defaultState,
+          ...parsed,
+          miners: { ...defaultState.miners, ...(parsed.miners || {}) },
+          deposits: Array.isArray(parsed.deposits) ? parsed.deposits : []
+        };
+      } catch (e) {
+        return { ...defaultState, miners: { ...defaultState.miners }, deposits: [] };
       }
     }
 
-    function getMined() {
-      return Math.max(0, Number((((Date.now() - data.last) / 60000) * data.rate).toFixed(4)));
+    let state = loadState();
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
-    function render() {
-      document.getElementById("balance").textContent = data.balance.toFixed(4) + " USDT";
-      document.getElementById("rate").textContent = data.rate.toFixed(4);
-      document.getElementById("mined").textContent = getMined().toFixed(4);
-    }
-
-    function claim() {
-      const m = getMined();
-      if (m < 0.0001) {
-        document.getElementById("msg").textContent = "⏳ Подождите пару секунд...";
-        return;
+    function getRatePer20Minutes() {
+      let total20m = BASE_RATE_PER_20M;
+      for (const [key, rate20m] of Object.entries(MINER_RATES_PER_20M)) {
+        const count = Number(state.miners[key] || 0);
+        total20m += count * rate20m;
       }
-      data.balance = Number((data.balance + m).toFixed(4));
-      data.last = Date.now();
-      saveLocal();
-      render();
-      document.getElementById("msg").textContent = "✅ Собрано +" + m.toFixed(4) + " USDT";
-      sendToBot();
+      return total20m;
     }
 
-    function boost() {
-      if (data.balance < 0.5) {
-        document.getElementById("msg").textContent = "❌ Нужно 0.5000 USDT";
-        return;
+    function getRatePerMinute() {
+      return getRatePer20Minutes() / CYCLE_MINUTES;
+    }
+
+    function getOwnedMinersCount() {
+      return Object.values(state.miners || {}).reduce((sum, n) => sum + Number(n || 0), 0);
+    }
+
+    function processMiningTick() {
+      const now = Date.now();
+      const elapsedMinutes = Math.max(0, (now - (state.lastTick || now)) / 60000);
+      const rateMin = getRatePerMinute();
+      if (elapsedMinutes > 0 && rateMin > 0) {
+        state.minedPending += elapsedMinutes * rateMin;
       }
-      data.balance = Number((data.balance - 0.5).toFixed(4));
-      data.rate = Number((data.rate + 0.005).toFixed(4));
-      saveLocal();
-      render();
-      document.getElementById("msg").textContent = "🚀 Скорость увеличена!";
-      sendToBot();
+      state.lastTick = now;
+      saveState();
     }
 
-    saveLocal();
-    render();
-    setInterval(render, 1000);
+    function formatUsdt(val, decimals = 4) {
+      return `${Number(val || 0).toFixed(decimals)} USDT`;
+    }
+
+    function updateUI() {
+      processMiningTick();
+
+      const uidBadge = document.getElementById("uidBadge");
+      const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
+      const params = new URLSearchParams(window.location.search);
+      const uid = tgUser && tgUser.id ? tgUser.id : (params.get("uid") || "10001");
+      if (uidBadge) uidBadge.textContent = `UID: ${uid}`;
+
+      const balanceEl = document.getElementById("balanceValue");
+      const rate20mEl = document.getElementById("rate20mValue");
+      const rateEl = document.getElementById("rateValue");
+      const minedEl = document.getElementById("minedValue");
+      const shopBalanceEl = document.getElementById("shopBalanceValue");
+      const ownedCountEl = document.getElementById("ownedMinersCount");
+
+      if (balanceEl) balanceEl.textContent = formatUsdt(state.balance, 5);
+      if (rate20mEl) rate20mEl.textContent = `+${getRatePer20Minutes().toFixed(4)} USDT`;
+      if (rateEl) rateEl.textContent = `${getRatePerMinute().toFixed(5)} USDT / хв`;
+      if (minedEl) minedEl.textContent = formatUsdt(state.minedPending, 5);
+      if (shopBalanceEl) shopBalanceEl.textContent = formatUsdt(state.balance, 4);
+      if (ownedCountEl) ownedCountEl.textContent = String(getOwnedMinersCount());
+
+      const pct = Math.min(100, Math.max(0, (Number(state.balance || 0) / MIN_WITHDRAW) * 100));
+      const progressText = document.getElementById("withdrawProgressText");
+      const progressBar = document.getElementById("withdrawProgressBar");
+      if (progressText) progressText.textContent = `${pct.toFixed(1)}%`;
+      if (progressBar) progressBar.style.width = `${pct}%`;
+
+      for (const key of Object.keys(MINER_RATES_PER_20M)) {
+        const el = document.getElementById(`count-${key}`);
+        if (el) el.textContent = String(state.miners[key] || 0);
+      }
+
+      const taskStatus = document.getElementById("taskStatusBox");
+      const claimTaskBtn = document.getElementById("claimTaskBtn");
+      if (taskStatus && claimTaskBtn) {
+        if (state.taskClaimed) {
+          claimTaskBtn.disabled = true;
+          claimTaskBtn.style.opacity = "0.6";
+          taskStatus.textContent = `✅ Нагороду +${TASK_REWARD.toFixed(2)} USDT вже отримано.`;
+        } else {
+          claimTaskBtn.disabled = false;
+          claimTaskBtn.style.opacity = "1";
+          taskStatus.textContent = "";
+        }
+      }
+
+      const bonusBtn = document.getElementById("dailyBonusBtn");
+      const bonusStatus = document.getElementById("dailyBonusStatus");
+      if (bonusBtn && bonusStatus) {
+        const diff = Date.now() - (state.lastDailyBonus || 0);
+        if (diff >= DAY_MS || !state.lastDailyBonus) {
+          bonusBtn.disabled = false;
+          bonusBtn.style.opacity = "1";
+          bonusStatus.textContent = "Бонус доступний зараз!";
+        } else {
+          const leftMs = DAY_MS - diff;
+          const hrs = Math.floor(leftMs / 3600000);
+          const mins = Math.floor((leftMs % 3600000) / 60000);
+          bonusBtn.disabled = true;
+          bonusBtn.style.opacity = "0.6";
+          bonusStatus.textContent = `Наступний бонус через ${hrs} год ${mins} хв`;
+        }
+      }
+
+      const refCountEl = document.getElementById("referralsCount");
+      const refLinkEl = document.getElementById("referralLinkBox");
+      if (refCountEl) refCountEl.textContent = String(state.referrals || 0);
+      if (refLinkEl) {
+        refLinkEl.textContent = `https://t.me/${BOT_USERNAME}?start=ref_${uid}`;
+      }
+    }
+
+    document.querySelectorAll(".nav-btn[data-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const targetId = btn.getAttribute("data-tab");
+        document.querySelectorAll(".nav-btn").forEach((b) => b.classList.remove("active"));
+        document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+        btn.classList.add("active");
+        const panel = document.getElementById(targetId);
+        if (panel) panel.classList.add("active");
+        updateUI();
+      });
+    });
+
+    const claimBtn = document.getElementById("claimBtn");
+    if (claimBtn) {
+      claimBtn.addEventListener("click", () => {
+        processMiningTick();
+        if (state.minedPending <= 0.0000001) return;
+        state.balance += state.minedPending;
+        state.minedPending = 0;
+        saveState();
+        updateUI();
+      });
+    }
+
+    document.querySelectorAll(".buy-miner-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        processMiningTick();
+        const minerKey = btn.getAttribute("data-miner");
+        const price = parseFloat(btn.getAttribute("data-price") || "0");
+        if (!minerKey || !MINER_RATES_PER_20M[minerKey]) return;
+
+        if (state.balance < price) {
+          alert(`Недостатньо коштів на балансі (${price} USDT). Поповніть баланс у вкладці «Поповнити».`);
+          return;
+        }
+        state.balance -= price;
+        state.miners[minerKey] = (state.miners[minerKey] || 0) + 1;
+        saveState();
+        updateUI();
+      });
+    });
+
+    const networkSelect = document.getElementById("depositNetworkSelect");
+    const networkBadge = document.getElementById("depositNetworkBadge");
+    const walletAddressEl = document.getElementById("depositWalletAddress");
+    const copyWalletBtn = document.getElementById("copyWalletBtn");
+    const checkDepositBtn = document.getElementById("checkDepositBtn");
+    const depositAmountInput = document.getElementById("depositAmountInput");
+    const depositStatusBox = document.getElementById("depositStatusBox");
+
+    if (networkSelect && networkBadge && walletAddressEl) {
+      networkSelect.addEventListener("change", () => {
+        const selected = networkSelect.options[networkSelect.selectedIndex];
+        networkBadge.textContent = selected.value;
+        walletAddressEl.textContent = selected.getAttribute("data-address") || "";
+      });
+    }
+
+    if (copyWalletBtn && walletAddressEl) {
+      copyWalletBtn.addEventListener("click", async () => {
+        const addr = walletAddressEl.textContent.trim();
+        try {
+          await navigator.clipboard.writeText(addr);
+          copyWalletBtn.textContent = "✅ Адресу скопійовано!";
+          setTimeout(() => { copyWalletBtn.textContent = "📋 Скопіювати адресу"; }, 1800);
+        } catch (e) {
+          alert("Адреса: " + addr);
+        }
+      });
+    }
+
+    if (checkDepositBtn && depositAmountInput && depositStatusBox && networkSelect) {
+      checkDepositBtn.addEventListener("click", () => {
+        const amount = parseFloat(depositAmountInput.value);
+        if (!amount || amount <= 0) {
+          depositStatusBox.textContent = "⚠️ Введіть коректну суму в USDT.";
+          return;
+        }
+        const net = networkSelect.value;
+        const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
+
+        if (tg && typeof tg.sendData === "function" && tg.initData) {
+          tg.sendData(JSON.stringify({
+            type: "deposit_check",
+            userId,
+            network: net,
+            amount
+          }));
+          depositStatusBox.textContent = `⏳ Запит на перевірку ${amount.toFixed(2)} USDT (${net}) надіслано в бота.`;
+        } else {
+          state.balance += amount;
+          state.deposits.push({ network: net, amount, date: new Date().toISOString() });
+          saveState();
+          updateUI();
+          depositStatusBox.textContent = `✅ Тестове зарахування +${amount.toFixed(2)} USDT (${net}) виконано.`;
+        }
+        depositAmountInput.value = "";
+      });
+    }
+
+    const claimTaskBtn = document.getElementById("claimTaskBtn");
+    if (claimTaskBtn) {
+      claimTaskBtn.addEventListener("click", () => {
+        if (state.taskClaimed) return;
+        state.balance += TASK_REWARD;
+        state.taskClaimed = true;
+        saveState();
+        updateUI();
+      });
+    }
+
+    const dailyBonusBtn = document.getElementById("dailyBonusBtn");
+    if (dailyBonusBtn) {
+      dailyBonusBtn.addEventListener("click", () => {
+        const diff = Date.now() - (state.lastDailyBonus || 0);
+        if (state.lastDailyBonus && diff < DAY_MS) {
+          updateUI();
+          return;
+        }
+        state.balance += DAILY_BONUS_REWARD;
+        state.lastDailyBonus = Date.now();
+        saveState();
+        updateUI();
+      });
+    }
+
+    const copyReferralBtn = document.getElementById("copyReferralBtn");
+    const referralLinkBox = document.getElementById("referralLinkBox");
+    if (copyReferralBtn && referralLinkBox) {
+      copyReferralBtn.addEventListener("click", async () => {
+        const link = referralLinkBox.textContent.trim();
+        try {
+          await navigator.clipboard.writeText(link);
+          copyReferralBtn.textContent = "✅ Посилання скопійовано!";
+          setTimeout(() => { copyReferralBtn.textContent = "🔗 Скопіювати реферальне посилання"; }, 1800);
+        } catch (e) {
+          alert(link);
+        }
+      });
+    }
+
+    const submitWithdrawBtn = document.getElementById("submitWithdrawBtn");
+    const withdrawNetworkSelect = document.getElementById("withdrawNetworkSelect");
+    const withdrawAddressInput = document.getElementById("withdrawAddressInput");
+    const withdrawAmountInput = document.getElementById("withdrawAmountInput");
+    const withdrawStatusBox = document.getElementById("withdrawStatusBox");
+
+    if (submitWithdrawBtn && withdrawNetworkSelect && withdrawAddressInput && withdrawAmountInput && withdrawStatusBox) {
+      submitWithdrawBtn.addEventListener("click", () => {
+        processMiningTick();
+        const network = withdrawNetworkSelect.value;
+        const address = withdrawAddressInput.value.trim();
+        const amount = parseFloat(withdrawAmountInput.value);
+
+        if (!address || address.length < 10) {
+          withdrawStatusBox.textContent = "⚠️ Введіть коректну адресу гаманця.";
+          return;
+        }
+        if (!amount || amount < MIN_WITHDRAW) {
+          withdrawStatusBox.textContent = `⚠️ Мінімальна сума виводу — $${MIN_WITHDRAW.toFixed(2)} USDT.`;
+          return;
+        }
+        if (state.balance < amount) {
+          withdrawStatusBox.textContent = "⚠️ Недостатньо коштів на балансі для виводу.";
+          return;
+        }
+
+        const user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
+        const payload = {
+          type: "withdraw_request",
+          userId: user ? user.id : "guest",
+          username: user && user.username ? `@${user.username}` : "unknown",
+          network,
+          address,
+          amount
+        };
+
+        state.balance -= amount;
+        saveState();
+        updateUI();
+
+        if (tg && typeof tg.sendData === "function" && tg.initData) {
+          tg.sendData(JSON.stringify(payload));
+          withdrawStatusBox.textContent = `✅ Заявку на вивід ${amount.toFixed(2)} USDT (${network}) надіслано адміністратору.`;
+        } else {
+          withdrawStatusBox.textContent = `✅ Заявку сформовано: ${amount.toFixed(2)} USDT (${network}) → ${address}`;
+        }
+
+        withdrawAddressInput.value = "";
+        withdrawAmountInput.value = "";
+      });
+    }
+
+    updateUI();
+    setInterval(updateUI, 1000);
   </script>
 </body>
 </html>
