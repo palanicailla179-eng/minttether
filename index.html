@@ -706,21 +706,25 @@
         const net = networkSelect.value;
         const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
 
-        if (tg && typeof tg.sendData === "function") {
-          tg.sendData(JSON.stringify({
-            type: "deposit_check",
-            userId,
-            network: net,
-            amount
-          }));
-          depositStatusBox.textContent = `⏳ Запит на перевірку ${amount.toFixed(2)} USDT (${net}) надіслано в бота.`;
-        } else {
-          state.balance += amount;
-          state.deposits.push({ network: net, amount, date: new Date().toISOString() });
-          saveState();
-          updateUI();
-          depositStatusBox.textContent = `✅ Тестове зарахування +${amount.toFixed(2)} USDT (${net}) виконано.`;
-        }
+if (tg && typeof tg.sendData === "function") {
+  try {
+    tg.sendData(JSON.stringify({
+      type: "deposit_check",
+      userId,
+      network: net,
+      amount
+    }));
+    depositStatusBox.textContent = `📤 sendData викликано для ${amount.toFixed(2)} USDT (${net}). Якщо вікно не закрилось — Telegram не прийняв web_app_data.`;
+  } catch (err) {
+    depositStatusBox.textContent = `❌ Помилка sendData: ${err.message}`;
+  }
+} else {
+  state.balance += amount;
+  state.deposits.push({ network: net, amount, date: new Date().toISOString() });
+  saveState();
+  updateUI();
+  depositStatusBox.textContent = `✅ Тестове зарахування +${amount.toFixed(2)} USDT (${net}) виконано (tg.sendData недоступний).`;
+}
         depositAmountInput.value = "";
       });
     }
