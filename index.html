@@ -464,10 +464,13 @@
       tg.expand();
     }
 
+    // Вкажіть сюди публічну HTTPS-адресу тунелю на ваш порт 3000 (наприклад, https://xxxx.trycloudflare.com)
+    const API_BASE_URL = "http://localhost:3000";
+
     const BOT_USERNAME = "MintTetherBot";
     const CYCLE_MINUTES = 20;
     const BASE_RATE_PER_20M = 0.0002;
-    const BASE_RATE_PER_MIN = BASE_RATE_PER_20M / CYCLE_MINUTES; // 0.00001 USDT / хв
+    const BASE_RATE_PER_MIN = BASE_RATE_PER_20M / CYCLE_MINUTES;
 
     const MINER_RATES_PER_20M = {
       nano: 0.04,
@@ -524,13 +527,35 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
-    function openBotWithPayload(payloadText) {
-      const botUrl = `https://t.me/${BOT_USERNAME}?text=${encodeURIComponent(payloadText)}`;
-      if (tg && typeof tg.openTelegramLink === "function") {
-        tg.openTelegramLink(botUrl);
-      } else {
-        window.open(botUrl, "_blank");
+    function getTgUser() {
+      return tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
+    }
+
+    function getCurrentUid() {
+      const tgUser = getTgUser();
+      return tgUser && tgUser.id ? tgUser.id : (params.get("uid") || "10001");
+    }
+
+    async function postToBackend(path, payload) {
+      const tgUser = getTgUser();
+      const body = {
+        userId: getCurrentUid(),
+        username: tgUser && tgUser.username ? tgUser.username : null,
+        first_name: tgUser && tgUser.first_name ? tgUser.first_name : null,
+        ...payload
+      };
+
+      const res = await fetch(`${API_BASE_URL}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
       }
+      return data;
     }
 
     function getRatePer20Minutes() {
@@ -569,9 +594,7 @@
 
     function updateUI() {
       processMiningTick();
-
-      const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
-      const uid = tgUser && tgUser.id ? tgUser.id : (params.get("uid") || "10001");
+      const uid = getCurrentUid();
 
       document.getElementById("uidBadge").textContent = `UID: ${uid}`;
       document.getElementById("balanceValue").textContent = formatUsdt(state.balance, 5);
@@ -682,9 +705,10 @@
       }
     });
 
-    document.getElementById("checkDepositBtn").addEventListener("click", () => {
+    document.getElementById("checkDepositBtn").addEventListener("click", async () => {
       const amountInput = document.getElementById("depositAmountInput");
       const statusBox = document.getElementById("depositStatusBox");
+      const btn = document.getElementById("checkDepositBtn");
       const amount = parseFloat(amountInput.value);
 
       if (!amount || amount <= 0) {
@@ -693,12 +717,20 @@
       }
 
       const net = networkSelect.value;
-      state.deposits.push({ network: net, amount, date: new Date().toISOString() });
-      saveState();
+      btn.disabled = true;
+      statusBox.textContent = "⏳ Надсилання заявки адміністратору...";
 
-      openBotWithPayload(`#MINT_DEP|${amount}|${net}`);
-      statusBox.textContent = `📩 Відкрито чат з @${BOT_USERNAME} для ${amount.toFixed(2)} USDT (${net}). Натисніть «Надіслати» в чаті бота.`;
-      amountInput.value = "";
+      try {
+        const res = await postToBackend("/api/deposit", { amount, network: net });
+        state.deposits.push({ id: res.id, network: net, amount, date: new Date().toISOString() });
+        saveState();
+        amountInput.value = "";
+        statusBox.textContent = `✅ Заявку на ${amount.toFixed(2)} USDT (${net}) надіслано адміністратору! ID: ${res.id}`;
+      } catch (err) {
+        statusBox.textContent = `❌ Не вдалося надіслати заявку: ${err.message}. Перевірте API_BASE_URL та запущений сервер.`;
+      } finally {
+        btn.disabled = false;
+      }
     });
 
     document.getElementById("claimTaskBtn").addEventListener("click", () => {
@@ -740,11 +772,12 @@
       }
     });
 
-    document.getElementById("submitWithdrawBtn").addEventListener("click", () => {
+    document.getElementById("submitWithdrawBtn").addEventListener("click", async () => {
       const net = document.getElementById("withdrawNetworkSelect").value;
       const addr = document.getElementById("withdrawAddressInput").value.trim();
       const amount = parseFloat(document.getElementById("withdrawAmountInput").value);
       const statusBox = document.getElementById("withdrawStatusBox");
+      const btn = document.getElementById("submitWithdrawBtn");
 
       if (!addr || addr.length < 6) {
         statusBox.textContent = "⚠️ Введіть коректну адресу гаманця.";
@@ -759,8 +792,17 @@
         return;
       }
 
-      openBotWithPayload(`#MINT_WD|${amount}|${net}|${addr}`);
-      statusBox.textContent = `📩 Відкрито чат з @${BOT_USERNAME} для виводу ${amount.toFixed(2)} USDT (${net}). Натисніть «Надіслати» в чаті бота.`;
+      btn.disabled = true;
+      statusBox.textContent = "⏳ Надсилання заявки на вивід...";
+
+      try {
+        const res = await postToBackend("/api/withdraw", { amount, network: net, address: addr });
+        statusBox.textContent = `✅ Заявку на вивід ${amount.toFixed(2)} USDT (${net}) надіслано! ID: ${res.id}`;
+      } catch (err) {
+        statusBox.textContent = `❌ Помилка відправки виводу: ${err.message}`;
+      } finally {
+        btn.disabled = false;
+      }
     });
 
     updateUI();
