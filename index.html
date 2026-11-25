@@ -464,8 +464,7 @@
       tg.expand();
     }
 
-    // Вкажіть сюди публічну HTTPS-адресу тунелю на ваш порт 3000 (наприклад, https://xxxx.trycloudflare.com)
-    const API_BASE_URL = "http://localhost:3000";
+    const API_BASE_URL = "https://stale-icons-wash.loca.lt";[cite: 4]
 
     const BOT_USERNAME = "MintTetherBot";
     const CYCLE_MINUTES = 20;
@@ -547,7 +546,10 @@
 
       const res = await fetch(`${API_BASE_URL}${path}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Bypass-Tunnel-Reminder": "true"
+        },
         body: JSON.stringify(body)
       });
 
