@@ -80,16 +80,40 @@
   </div>
 
   <script>
-    if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.ready();
-      window.Telegram.WebApp.expand();
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    if (tg) {
+      tg.ready();
+      tg.expand();
     }
 
-    let data = JSON.parse(localStorage.getItem("mint_data") || "null") || {
-      balance: 0,
-      rate: 0.005,
-      last: Date.now()
+    const params = new URLSearchParams(window.location.search);
+    const uid = params.get("uid") || (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) || "guest";
+    const storageKey = `mint_data_${uid}`;
+
+    const saved = JSON.parse(localStorage.getItem(storageKey) || "null") || {};
+    const urlBalance = parseFloat(params.get("balance"));
+    const urlRate = parseFloat(params.get("rate"));
+
+    let data = {
+      balance: !Number.isNaN(urlBalance) ? Number(urlBalance.toFixed(4)) : (Number(saved.balance) || 0),
+      rate: !Number.isNaN(urlRate) ? Number(urlRate.toFixed(4)) : (Number(saved.rate) || 0.005),
+      last: Number(saved.last) || Date.now()
     };
+
+    function saveLocal() {
+      localStorage.setItem(storageKey, JSON.stringify(data));
+    }
+
+    function sendToBot() {
+      saveLocal();
+      if (tg && typeof tg.sendData === "function") {
+        tg.sendData(JSON.stringify({
+          uid: String(uid),
+          balance: Number(data.balance.toFixed(4)),
+          rate: Number(data.rate.toFixed(4))
+        }));
+      }
+    }
 
     function getMined() {
       return Math.max(0, Number((((Date.now() - data.last) / 60000) * data.rate).toFixed(4)));
@@ -109,9 +133,10 @@
       }
       data.balance = Number((data.balance + m).toFixed(4));
       data.last = Date.now();
-      localStorage.setItem("mint_data", JSON.stringify(data));
+      saveLocal();
       render();
       document.getElementById("msg").textContent = "✅ Собрано +" + m.toFixed(4) + " USDT";
+      sendToBot();
     }
 
     function boost() {
@@ -121,11 +146,13 @@
       }
       data.balance = Number((data.balance - 0.5).toFixed(4));
       data.rate = Number((data.rate + 0.005).toFixed(4));
-      localStorage.setItem("mint_data", JSON.stringify(data));
+      saveLocal();
       render();
       document.getElementById("msg").textContent = "🚀 Скорость увеличена!";
+      sendToBot();
     }
 
+    saveLocal();
     render();
     setInterval(render, 1000);
   </script>
