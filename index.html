@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MintTether</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #0b0f14;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .app {
+      width: 100%;
+      max-width: 400px;
+      background: #131a22;
+      border: 1px solid #26a17b;
+      border-radius: 22px;
+      padding: 24px;
+      text-align: center;
+    }
+    .title { color: #26a17b; font-weight: 700; font-size: 16px; margin-bottom: 10px; }
+    .balance { font-size: 36px; font-weight: 800; margin: 8px 0; }
+    .info { color: #9aa5b1; font-size: 14px; margin-bottom: 24px; }
+    .mine-btn {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      border: 4px solid #26a17b;
+      background: radial-gradient(circle, #2fd49f, #176b50);
+      color: #fff;
+      font-size: 20px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 0 30px rgba(38, 161, 123, 0.5);
+      margin: 10px auto 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .mine-btn:active { transform: scale(0.95); }
+    .boost-btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 14px;
+      background: #26a17b;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .msg { margin-top: 14px; font-size: 14px; color: #38d9a9; min-height: 20px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="title">MINTTETHER MINING</div>
+    <div class="balance" id="balance">0.0000 USDT</div>
+    <div class="info">
+      Скорость: <span id="rate">0.0050</span> USDT/мин<br />
+      Намайнено: <span id="mined">0.0000</span> USDT
+    </div>
+
+    <button class="mine-btn" onclick="claim()">
+      <span style="font-size: 36px;">⛏</span>
+      <span>СОБРАТЬ</span>
+    </button>
+
+    <button class="boost-btn" onclick="boost()">⚡ Буст +0.005/мин (0.5 USDT)</button>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <script>
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.ready();
+      window.Telegram.WebApp.expand();
+    }
+
+    let data = JSON.parse(localStorage.getItem("mint_data") || "null") || {
+      balance: 0,
+      rate: 0.005,
+      last: Date.now()
+    };
+
+    function getMined() {
+      return Math.max(0, Number((((Date.now() - data.last) / 60000) * data.rate).toFixed(4)));
+    }
+
+    function render() {
+      document.getElementById("balance").textContent = data.balance.toFixed(4) + " USDT";
+      document.getElementById("rate").textContent = data.rate.toFixed(4);
+      document.getElementById("mined").textContent = getMined().toFixed(4);
+    }
+
+    function claim() {
+      const m = getMined();
+      if (m < 0.0001) {
+        document.getElementById("msg").textContent = "⏳ Подождите пару секунд...";
+        return;
+      }
+      data.balance = Number((data.balance + m).toFixed(4));
+      data.last = Date.now();
+      localStorage.setItem("mint_data", JSON.stringify(data));
+      render();
+      document.getElementById("msg").textContent = "✅ Собрано +" + m.toFixed(4) + " USDT";
+    }
+
+    function boost() {
+      if (data.balance < 0.5) {
+        document.getElementById("msg").textContent = "❌ Нужно 0.5000 USDT";
+        return;
+      }
+      data.balance = Number((data.balance - 0.5).toFixed(4));
+      data.rate = Number((data.rate + 0.005).toFixed(4));
+      localStorage.setItem("mint_data", JSON.stringify(data));
+      render();
+      document.getElementById("msg").textContent = "🚀 Скорость увеличена!";
+    }
+
+    render();
+    setInterval(render, 1000);
+  </script>
+</body>
+</html>
