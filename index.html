@@ -706,7 +706,7 @@
         const net = networkSelect.value;
         const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
 
-        if (tg && typeof tg.sendData === "function" && tg.initData) {
+        if (tg && typeof tg.sendData === "function") {
           tg.sendData(JSON.stringify({
             type: "deposit_check",
             userId,
@@ -806,7 +806,7 @@
         saveState();
         updateUI();
 
-        if (tg && typeof tg.sendData === "function" && tg.initData) {
+        if (tg && typeof tg.sendData === "function") {
           tg.sendData(JSON.stringify(payload));
           withdrawStatusBox.textContent = `✅ Заявку на вивід ${amount.toFixed(2)} USDT (${network}) надіслано адміністратору.`;
         } else {
